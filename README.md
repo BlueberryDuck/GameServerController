@@ -1,92 +1,119 @@
 # GameServerController
 
-A Discord bot that allows users to control a game server running in a Docker container on an Unraid server. The bot can start, stop, and check the status of the game server, and it automatically shuts down the server after a period of inactivity.
+A Discord bot to control multiple game servers running in Docker containers on an Unraid server. Start, stop, and check the status of game servers directly from Discord, with automatic shutdown after inactivity.
 
 ## Features
 
-- **Start the Game Server**: Start your game server directly from Discord.
-- **Stop the Game Server**: Stop the game server when not in use.
-- **Server Status**: Check if the game server is running.
-- **Auto Shutdown**: Automatically stops the game server after 10 minutes of inactivity.
-- **Player Activity Monitoring**: Monitors player connections and disconnections in real-time.
+- **Multi-Game Support**: Manage multiple game servers via `config.json`.
+- **Discord Commands**: Start (`!startserver`), stop (`!stopserver`), and check status (`!serverstatus`).
+- **Auto Shutdown**: Automatically stops servers after inactivity.
+- **Player Monitoring**: Monitors player connections/disconnections.
 
 ## Prerequisites
 
-- **Unraid Server**: Running Docker containers.
-- **Docker Access**: The bot needs access to the Docker daemon via the Docker socket.
-- **Discord Account**: With permissions to add bots to your Discord server.
-- **Game Server Docker Container**: Your game server should be running in a Docker container.
+- **Unraid Server** with Docker.
+- **Docker Access**: Bot requires access to the Docker daemon via socket.
+- **Discord Bot**: With necessary permissions.
+- **Game Server Containers**: Running in Docker.
+- **Python 3.8+** (if not using Docker).
 
 ## Setup Instructions
 
-### 1. Clone the Repository
+1.  **Clone Repository**:
 
-Clone this repository to your Unraid server:
-
-    git clone https://github.com/blueberryduck/gameservercontroller.git
+    git clone https://github.com/yourusername/gameservercontroller.git
     cd gameservercontroller
 
-### 2. Create a Discord Bot
+2.  **Create Discord Bot**:
 
-1. **Discord Developer Portal**: Go to the [Discord Developer Portal](https://discord.com/developers/applications).
-2. **New Application**: Click on **"New Application"**, give it a name, and create it.
-3. **Add a Bot**: Navigate to the **"Bot"** tab and click **"Add Bot"**.
-4. **Bot Token**: Click **"Reset Token"** and copy the token. **Keep it secure!**
-5. **Enable Intents**: Under **"Privileged Gateway Intents"**, enable **"Message Content Intent"**.
+    - Go to [Discord Developer Portal](https://discord.com/developers/applications).
+    - Create a new application and add a bot.
+    - Copy the bot token (keep it secure).
+    - Enable **"Message Content Intent"** under **"Privileged Gateway Intents"**.
 
-### 3. Build the Docker Image
+3.  **Create `config.json`**:
 
-Build the Docker image for the bot:
+    Create a `config.json` file with your game configurations:
+
+        {
+          "Palworld": {
+            "container_name": "Palworld",
+            "player_join_regex": "\\[.*\\] \\[LOG\\] (?P<player_name>.+?) joined the server\\. \\(User id: .*\\)",
+            "player_leave_regex": "\\[.*\\] \\[LOG\\] (?P<player_name>.+?) left the server\\. \\(User id: .*\\)",
+            "inactivity_limit": 600,
+            "check_interval": 60
+          },
+          "OtherGame": {
+            "container_name": "OtherGameContainer",
+            "player_join_regex": "Player (?P<player_name>.+?) has joined the game",
+            "player_leave_regex": "Player (?P<player_name>.+?) has left the game",
+            "inactivity_limit": 300,
+            "check_interval": 30
+          }
+        }
+
+    - Customize configurations for your games.
+    - Add new games as needed.
+
+4.  **Build Docker Image**:
 
     docker build -t gameservercontroller .
 
-### 4. Run the Docker Container
+5.  **Run Docker Container**:
 
-Run the bot's Docker container with the Docker socket mounted and BOT_TOKEN set:
+        docker run -d \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -e BOT_TOKEN=your_discord_bot_token \
+          -e GAME_NAME=YourGameName \
+          --name gameservercontroller \
+          gameservercontroller
 
-### 5. Invite the Bot to Your Discord Server
+    - Replace `your_discord_bot_token` with your actual Discord bot token.
+    - Replace `YourGameName` with the game name as specified in `config.json` (e.g., `Palworld`).
 
-1. **OAuth2 URL Generator**: In the Discord Developer Portal, go to **"OAuth2"** > **"URL Generator"**.
-2. **Scopes**: Select **"bot"**.
-3. **Bot Permissions**: Check **"Send Messages"** and **"Read Message History"**.
-4. **Generate URL**: Copy the generated URL.
-5. **Invite the Bot**: Paste the URL into your browser, select your server, and authorize the bot.
+6.  **Invite Bot to Discord Server**:
+
+    - Go to **"OAuth2"** > **"URL Generator"** in the Discord Developer Portal.
+    - Select **"bot"** under **Scopes**.
+    - Under **Bot Permissions**, check **"Send Messages"** and **"Read Message History"**.
+    - Copy the generated URL and paste it into your browser.
+    - Select your Discord server and authorize the bot.
 
 ## Usage
 
-### Bot Commands
+- **Commands**:
 
-- `!startserver`: Starts the game server.
-- `!stopserver`: Stops the game server.
-- `!serverstatus`: Shows the current status of the game server.
-- `!help`: Displays help information about the bot commands.
+  - `!startserver`: Starts the game server.
+  - `!stopserver`: Stops the game server.
+  - `!serverstatus`: Shows server status.
+  - `!help`: Displays help information.
 
-### Monitoring Player Activity
-
-The bot automatically monitors player activity by streaming the game server's logs in real-time. It will shut down the server after the specified period of inactivity.
+- **Note**: Commands affect the game specified by the `GAME_NAME` environment variable.
 
 ## Customization
 
-### Adjusting Inactivity Settings
+- **Add New Games**: Update `config.json` with new game configurations.
+- **Adjust Inactivity Settings**: Modify `inactivity_limit` and `check_interval` in `config.json`.
+- **Allowed Channels**: Update the `ALLOWED_CHANNELS` list in the bot script (`bot.py`):
 
-- **Inactivity Limit**: Modify `INACTIVITY_LIMIT` to adjust how long the server waits before shutting down due to inactivity.
-- **Check Interval**: Modify `CHECK_INTERVAL` to change how frequently the bot checks for player activity.
+       ALLOWED_CHANNELS = ['bot-commands', 'your-other-channel']
 
-### Allowed Channels
-
-Update `ALLOWED_CHANNELS` to specify which Discord channels the bot listens to for commands.
-
-### Log Parsing
-
-If your game server's log format differs, adjust the regular expressions in `bot.py` to correctly parse player join and leave events.
+- **Log Parsing**: Adjust regex patterns in `config.json` to match your game server's log format.
 
 ## Security Considerations
 
-- **Docker Socket Access**: The bot requires access to the Docker socket, which grants significant permissions. Ensure the bot's code is secure and that access is restricted.
-- **Restrict Bot Commands**: The bot only responds in specified channels. Consider further restricting commands to certain users or roles.
-- **Protect Your Bot Token**: Never share your Discord bot token. Store it securely and avoid hardcoding it in your scripts.
+- **Docker Socket Access**: Grants significant permissions; ensure the bot code is secure.
+- **Restrict Bot Commands**: Limit to specific channels or user roles.
+- **Protect Bot Token**: Keep your Discord bot token confidential.
+- **Secure `config.json`**: If it contains sensitive information, secure it appropriately.
 
-## Logging
+## Troubleshooting
 
-- The bot uses Python's `logging` module.
-- Logs are output to the console and can be viewed using Docker logs
+- **Configuration Errors**: Ensure `config.json` is correctly formatted and includes all necessary configurations.
+- **Environment Variables**: Verify that `BOT_TOKEN` and `GAME_NAME` are set correctly.
+- **Docker Access**: Check that the Docker socket is correctly mounted and accessible.
+- **Discord Permissions**: Ensure the bot has the necessary permissions in your Discord server.
+
+## License
+
+[MIT License](LICENSE)

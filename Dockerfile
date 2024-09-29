@@ -12,9 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY bot.py ./
-
-# The bot token can be provided via environment variables
-# It's better not to hardcode it in the Dockerfile
+COPY config.json ./
 
 # Command to run the bot
 CMD ["python", "bot.py"]

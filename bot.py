@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -15,8 +16,41 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 
-# Get the bot token from the environment variable
+# Get the bot token and game name from environment variables
 TOKEN = os.getenv('BOT_TOKEN')
+GAME_NAME = os.getenv('GAME_NAME')
+
+if not TOKEN:
+    logging.error('BOT_TOKEN environment variable not set.')
+    exit(1)
+
+if not GAME_NAME:
+    logging.error('GAME_NAME environment variable not set.')
+    exit(1)
+
+# Load game configurations from config.json
+CONFIG_FILE = 'config.json'
+
+try:
+    with open(CONFIG_FILE, 'r') as f:
+        config = json.load(f)
+except FileNotFoundError:
+    logging.error(f'Configuration file "{CONFIG_FILE}" not found.')
+    exit(1)
+except json.JSONDecodeError as e:
+    logging.error(f'Error parsing configuration file: {e}')
+    exit(1)
+
+if GAME_NAME not in config:
+    logging.error(f'Game "{GAME_NAME}" not found in configuration.')
+    exit(1)
+
+game_config = config[GAME_NAME]
+
+# Extract game-specific settings
+CONTAINER_NAME = game_config['container_name']
+INACTIVITY_LIMIT = game_config['inactivity_limit']  # In seconds
+CHECK_INTERVAL = game_config['check_interval']      # In seconds
 
 # Define the intents your bot will use
 intents = discord.Intents.default()
@@ -31,23 +65,20 @@ docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 # Restrict bot usage to specific channels (optional)
 ALLOWED_CHANNELS = ['bot-commands']  # Replace with your actual channel names
 
-# Name of your game server container
-CONTAINER_NAME = 'Palworld'
-
-# Inactivity settings
-INACTIVITY_LIMIT = 600  # In seconds (10 minutes)
-CHECK_INTERVAL = 60     # In seconds (check every minute)
-
 
 class ServerManager:
     """
     Class to manage the server state and monitoring.
     """
-    def __init__(self):
+    def __init__(self, game_config):
+        self.game_config = game_config
         self.online_players = set()
         self.online_players_lock = threading.Lock()
         self.log_monitoring_thread = None
         self.inactivity_time = 0
+        # Compile regex patterns
+        self.player_join_pattern = re.compile(self.game_config['player_join_regex'])
+        self.player_leave_pattern = re.compile(self.game_config['player_leave_regex'])
 
     def monitor_container_logs(self):
         """
@@ -66,27 +97,19 @@ class ServerManager:
                 # Stream logs in real-time
                 log_stream = container.logs(stream=True, follow=True, since=int(time.time()))
 
-                # Compile regex patterns
-                player_join_pattern = re.compile(
-                    r'\[.*\] \[LOG\] (?P<player_name>.+?) joined the server\. \(User id: .*\)'
-                )
-                player_leave_pattern = re.compile(
-                    r'\[.*\] \[LOG\] (?P<player_name>.+?) left the server\. \(User id: .*\)'
-                )
-
                 for log in log_stream:
                     line = log.decode('utf-8').strip()
                     if not line:
                         continue
                     # Process the log line
-                    match = player_join_pattern.match(line)
+                    match = self.player_join_pattern.match(line)
                     if match:
                         player = match.group('player_name')
                         with self.online_players_lock:
                             self.online_players.add(player)
                         logging.info(f'Player joined: {player}')
                         continue
-                    match = player_leave_pattern.match(line)
+                    match = self.player_leave_pattern.match(line)
                     if match:
                         player = match.group('player_name')
                         with self.online_players_lock:
@@ -117,7 +140,7 @@ class ServerManager:
         logging.info('Stopped log monitoring thread')
 
 
-server_manager = ServerManager()
+server_manager = ServerManager(game_config)
 
 
 def is_allowed(ctx):
@@ -131,7 +154,7 @@ def is_allowed(ctx):
 @bot.command(
     name='startserver',
     help=(
-        "Starts the game server.\n\nUse this command to start the Palworld game server. "
+        f"Starts the game server.\n\nUse this command to start the {GAME_NAME} game server. "
         "The server will begin monitoring player activity once started."
     ),
     brief="Starts the game server."
@@ -160,7 +183,7 @@ async def start_server(ctx):
 @bot.command(
     name='stopserver',
     help=(
-        "Stops the game server.\n\nUse this command to stop the Palworld game server. "
+        f"Stops the game server.\n\nUse this command to stop the {GAME_NAME} game server. "
         "This will also stop the player activity monitoring."
     ),
     brief="Stops the game server."
@@ -189,7 +212,7 @@ async def stop_server(ctx):
 @bot.command(
     name='serverstatus',
     help=(
-        "Displays the current status of the game server.\n\nShows whether the Palworld game "
+        f"Displays the current status of the game server.\n\nShows whether the {GAME_NAME} game "
         "server is running or stopped."
     ),
     brief="Displays the game server status."
@@ -228,12 +251,12 @@ async def monitor_inactivity():
                 server_manager.inactivity_time += CHECK_INTERVAL
                 if server_manager.inactivity_time >= INACTIVITY_LIMIT:
                     container.stop()
-                    logging.warning('No players online for 10 minutes. Stopping the server.')
+                    logging.warning(f'No players online for {INACTIVITY_LIMIT} seconds. Stopping the server.')
                     server_manager.inactivity_time = 0
                     # Optionally send a message to a Discord channel
                     channel = discord.utils.get(bot.get_all_channels(), name=ALLOWED_CHANNELS[0])
                     if channel:
-                        await channel.send('No players online for 10 minutes. Stopping the server.')
+                        await channel.send(f'No players online for {INACTIVITY_LIMIT} seconds. Stopping the server.')
                     # Stop the log monitoring thread
                     server_manager.stop_log_monitoring_thread()
         else:
