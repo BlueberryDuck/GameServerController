@@ -21,8 +21,7 @@ A Discord bot to control multiple game servers running in Docker containers on a
 
 1.  **Clone Repository**:
 
-    git clone https://github.com/yourusername/gameservercontroller.git
-    cd gameservercontroller
+    git clone https://github.com/blueberryduck/gameservercontroller.git
 
 2.  **Create Discord Bot**:
 
