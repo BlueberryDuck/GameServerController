@@ -50,8 +50,8 @@ def monitor_container_logs():
             container = client.containers.get(CONTAINER_NAME)
             container.reload()
             if container.status != 'running':
-                logging.info(f'Container "{CONTAINER_NAME}" is not running. Retrying in 5 seconds...')
-                time.sleep(5)
+                logging.info(f'Container "{CONTAINER_NAME}" is not running. Retrying in 10 minutes...')
+                time.sleep(600)
                 continue
 
             logging.info(f'Starting log monitoring for container "{CONTAINER_NAME}"')
