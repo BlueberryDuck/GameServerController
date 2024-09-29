@@ -112,7 +112,3 @@ A Discord bot to control multiple game servers running in Docker containers on a
 - **Environment Variables**: Verify that `BOT_TOKEN` and `GAME_NAME` are set correctly.
 - **Docker Access**: Check that the Docker socket is correctly mounted and accessible.
 - **Discord Permissions**: Ensure the bot has the necessary permissions in your Discord server.
-
-## License
-
-[MIT License](LICENSE)
