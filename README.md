@@ -1,4 +1,4 @@
-# Discord Game Server Bot
+# GameServerController
 
 A Discord bot that allows users to control a game server running in a Docker container on an Unraid server. The bot can start, stop, and check the status of the game server, and it automatically shuts down the server after a period of inactivity.
 
