@@ -65,6 +65,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Initialize Docker client
 docker_client = docker.DockerClient(base_url="unix://var/run/docker.sock")
 
+
 class ServerManager:
     """
     Class to manage the server state and monitoring.
@@ -268,9 +269,9 @@ async def monitor_inactivity():
                         f"No players online for {INACTIVITY_LIMIT} seconds. Stopping the server."
                     )
                     server_manager.inactivity_time = 0
-                    # Optionally send a message to a Discord channel
+                    # Send a message to a Discord channel
                     channel = discord.utils.get(
-                        bot.get_all_channels(), name==CHANNEL_NAME
+                        bot.get_all_channels(), name=CHANNEL_NAME
                     )
                     if channel:
                         await channel.send(

@@ -64,11 +64,13 @@ A Discord bot to control multiple game servers running in Docker containers on a
           -v /var/run/docker.sock:/var/run/docker.sock \
           -e BOT_TOKEN=your_discord_bot_token \
           -e GAME_NAME=YourGameName \
+          -e CHANNEL_NAME=channel-name \
           --name gameservercontroller \
           gameservercontroller
 
     - Replace `your_discord_bot_token` with your actual Discord bot token.
     - Replace `YourGameName` with the game name as specified in `config.json` (e.g., `Palworld`).
+    - Replace `channel-name` with the discord channel name where the bot should operate.
 
 6.  **Invite Bot to Discord Server**:
 
@@ -93,10 +95,6 @@ A Discord bot to control multiple game servers running in Docker containers on a
 
 - **Add New Games**: Update `config.json` with new game configurations.
 - **Adjust Inactivity Settings**: Modify `inactivity_limit` and `check_interval` in `config.json`.
-- **Allowed Channels**: Update the `ALLOWED_CHANNELS` list in the bot script (`bot.py`):
-
-       ALLOWED_CHANNELS = ['bot-commands', 'your-other-channel']
-
 - **Log Parsing**: Adjust regex patterns in `config.json` to match your game server's log format.
 
 ## Security Considerations
