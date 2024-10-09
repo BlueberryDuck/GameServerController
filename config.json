@@ -6,11 +6,11 @@
     "inactivity_limit": 600,
     "check_interval": 60
   },
-  "OtherGame": {
-    "container_name": "OtherGameContainer",
-    "player_join_regex": "Player (?P<player_name>.+?) has joined the game",
-    "player_leave_regex": "Player (?P<player_name>.+?) has left the game",
-    "inactivity_limit": 300,
-    "check_interval": 30
+  "Enshrouded": {
+    "container_name": "Enshrouded",
+    "player_join_regex": "\\[server\\] Player '(?P<player_name>.+?)' logged in",
+    "player_leave_regex": "\\[server\\] Remove Player '(?P<player_name>.+?)'",
+    "inactivity_limit": 600,
+    "check_interval": 60
   }
 }
